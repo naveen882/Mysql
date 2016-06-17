@@ -1,0 +1,468 @@
+MYSQL Architrcture
+communication layer: Authentication,thread,communication protocol
+SQL layer:Authorization,parsing,query cache,optimization
+
+Query cahce or query buffer: contain tewo things:syntax of every select command and result of every select command
+Query cache or query buffer size can be fixed,it uses par of the RAM
+Prasing is checking of the table existence in the server
+
+Storage or Engine: Innodb, MyIsam,NDB,Memory,CSV,Archive
+Innodb:For one table two files will be created to write the data, will not support spatial index,supports fulltext,foreign key index
+MysISAM:For one table 3 files will be created to write the data, will support spatial index,full text and will not support foreign key index
+Memory: For one table One file will be created to write the data
+Cluster uses NDB(Network database)
+
+All engines supports full text index
+
+Index:
+Full text
+spatial index
+foreing key index
+
+Innodb uses rowlevel locking
+MyISAM uses table level locking,ver good for readonly environment
+
+Transactions : Inser update delete takes place as one statement and at once only and also roll back of these can be done at the same time.Innodb supports transactions and MYISAM does not support this.
+
+InnoDB is the mostfrequent engines used.
+
+mysql -uroot -p --replacefiles will replace the older version else an error will be raised
+
+Any query taking more than 10 seconds will be recorded in slow query log;
+To enable slow query log - show variables like '%log%';
+and in slow_query_log_file path the logs will be logged;
+set GLOBAL slow_quer_log=on;
+The 10 second interval can be changed according to user with set GLOBAL long_query_time=15;  //15seconds
+
+Important
+mysql> set sql_mode='traditional'; //to prevent invalid date and invalid insert of int float or to create anonymous user
+
+mysql> show variables like 'sql_mode';
++---------------+------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Variable_name | Value                                                                                                                                                |
++---------------+------------------------------------------------------------------------------------------------------------------------------------------------------+
+| sql_mode      | STRICT_TRANS_TABLES,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,TRADITIONAL,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION |
++---------------+------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+ACID:
+
+A:Automic
+C:Consistent
+I:Isolation
+D:Durable
+
+mysql> create user 'abc'@'%' identified by 'abc'; //Can access from anywhere or localhost
+
+mysql>install plugin validate_password soname 'validate_password.so';
+
+mysql>show plugins;
+
+$mysql_secure_installation  //system command
+
+
+
+procedures:
+
+mysql> delimiter //
+mysql> create procedure p1()
+    -> begin
+    -> select * from t3;
+    -> end
+    -> //
+
+mysql call p1()//
+
+
+mysql> 
+mysql> create user 'kk'@'%'identified by 'kk'//
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> show grants for kk//
++---------------------------------------------------------------------------------------------------+
+| Grants for kk@%                                                                                   |
++---------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'kk'@'%' IDENTIFIED BY PASSWORD '*86395FF05A68EFE06838C93D89A625211ED65961' |
++---------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> grant execute on db2.* to 'kk'@'%'//
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> show grants for kk//
++---------------------------------------------------------------------------------------------------+
+| Grants for kk@%                                                                                   |
++---------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'kk'@'%' IDENTIFIED BY PASSWORD '*86395FF05A68EFE06838C93D89A625211ED65961' |
+| GRANT EXECUTE ON `db2`.* TO 'kk'@'%'                                                              |
++---------------------------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+(.venv)naveen@naveen-VirtualBox:~$ mysql -ukk -pkk
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 40
+Server version: 5.5.47-0ubuntu0.14.04.1-log (Ubuntu)
+
+Copyright (c) 2000, 2015, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
++--------------------+
+1 row in set (0.00 sec)
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| db2                |
++--------------------+
+2 rows in set (0.00 sec)
+
+mysql> use db2;
+Database changed
+mysql> call p1();
++------------+
+| id         |
++------------+
+|          1 |
+| 2147483647 |
+|         12 |
+|         44 |
+|         44 |
++------------+
+5 rows in set (0.00 sec)
+
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from t3;
+ERROR 1142 (42000): SELECT command denied to user 'kk'@'localhost' for table 't3'
+
+
+
+Functions:
+
+mysql> create function f1() returns int reads sql data begin declare a int; select count(*) into a from t3;return a;end//
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select f1()//
++------+
+| f1() |
++------+
+|    5 |
++------+
+1 row in set (0.00 sec)
+
+To see all the procedures and functions
+
+mysql> select routine_name from information_schema.routines where routine_schema='db2';
+    -> //
++--------------+
+| routine_name |
++--------------+
+| f1           |
+| p1           |
++--------------+
+2 rows in set (0.00 sec)
+
+Triggers
+
+Insert, Update and Delete operations can be performed
+
+mysql> CREATE TABLE DeletedCity
+    -> ( ID INT UNSIGNED, Name
+    -> VARCHAR(50),
+    -> When_Deleted timestamp);
+    -> //
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> CREATE TRIGGER City_AD AFTER DELETE ON t3 FOR EACH ROW INSERT INTO DeletedCity (ID) VALUES (OLD.ID);
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> select * from t3;
++------------+
+| id         |
++------------+
+|          1 |
+| 2147483647 |
+|         12 |
+|         44 |
+|         44 |
++------------+
+5 rows in set (0.00 sec)
+
+mysql> delete from t3 where id=44;
+Query OK, 2 rows affected (0.01 sec)
+
+
+mysql> select * from DeletedCity;
++------+------+---------------------+
+| ID   | Name | When_Deleted        |
++------+------+---------------------+
+|   44 | NULL | 2016-03-30 12:01:34 |
+|   44 | NULL | 2016-03-30 12:01:34 |
++------+------+---------------------+
+2 rows in set (0.00 sec)
+
+mysql> show triggers;
++---------+--------+-------+----------------------------------------------+--------+---------+----------+----------------+----------------------+----------------------+--------------------+
+| Trigger | Event  | Table | Statement                                    | Timing | Created | sql_mode | Definer        | character_set_client | collation_connection | Database Collation |
++---------+--------+-------+----------------------------------------------+--------+---------+----------+----------------+----------------------+----------------------+--------------------+
+| City_AD | DELETE | t3    | INSERT INTO DeletedCity (ID) VALUES (OLD.ID) | AFTER  | NULL    |          | root@localhost | utf8                 | utf8_general_ci      | latin1_swedish_ci  |
++---------+--------+-------+----------------------------------------------+--------+---------+----------+----------------+----------------------+----------------------+--------------------+
+1 row in set (0.00 sec)
+
+In general for any trigger privilege has to be given specially by root or else the user will not be able to create the trigger
+
+PAM authentication is authenticating all the linux users in mysql databases
+
+
+Events:
+
+Events are like crontabs.This sceduling is maintained by a database object as event
+
+At and every is the keyword used for scheduling the query
+
+Only when event_scheduler is on then only the event can be executed by default it is off
+
+
+Ex:
+mysql> create event e1 on schedule at current_timestamp+interval 2 minute do insert into date1 values(now());
+
+mysql> show variables like 'event%';
++-----------------+-------+
+| Variable_name   | Value |
++-----------------+-------+
+| event_scheduler | OFF   |
++-----------------+-------+
+1 row in set (0.00 sec)
+
+mysql> set global event_scheduler='on';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> show variables like 'event%';
++-----------------+-------+
+| Variable_name   | Value |
++-----------------+-------+
+| event_scheduler | ON    |
++-----------------+-------+
+1 row in set (0.00 sec)
+
+mysql> show processlist;
++----+-----------------+-----------+------+---------+------+------------------------+------------------+
+| Id | User            | Host      | db   | Command | Time | State                  | Info             |
++----+-----------------+-----------+------+---------+------+------------------------+------------------+
+| 39 | root            | localhost | db2  | Query   |    0 | NULL                   | show processlist |
+| 40 | kk              | localhost | db2  | Sleep   | 3538 |                        | NULL             |
+| 43 | event_scheduler | localhost | NULL | Daemon  |   23 | Waiting on empty queue | NULL             |
++----+-----------------+-----------+------+---------+------+------------------------+------------------+
+3 rows in set (0.00 sec)
+
+mysql> use db2;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> create event e1 on schedule at current_timestamp+interval 2 minute do insert into date1 values(now());
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> use information_schema;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> select * from events;
++---------------+--------------+------------+----------------+-----------+------------+---------------------------------+------------+---------------------+----------------+----------------+----------+--------+------+---------+---------------+---------------------+---------------------+---------------+---------------+------------+----------------------+----------------------+--------------------+
+| EVENT_CATALOG | EVENT_SCHEMA | EVENT_NAME | DEFINER        | TIME_ZONE | EVENT_BODY | EVENT_DEFINITION                | EVENT_TYPE | EXECUTE_AT          | INTERVAL_VALUE | INTERVAL_FIELD | SQL_MODE | STARTS | ENDS | STATUS  | ON_COMPLETION | CREATED             | LAST_ALTERED        | LAST_EXECUTED | EVENT_COMMENT | ORIGINATOR | CHARACTER_SET_CLIENT | COLLATION_CONNECTION | DATABASE_COLLATION |
++---------------+--------------+------------+----------------+-----------+------------+---------------------------------+------------+---------------------+----------------+----------------+----------+--------+------+---------+---------------+---------------------+---------------------+---------------+---------------+------------+----------------------+----------------------+--------------------+
+| def           | db2          | e1         | root@localhost | SYSTEM    | SQL        | insert into date1 values(now()) | ONE TIME   | 2016-03-30 12:22:23 | NULL           | NULL           |          | NULL   | NULL | ENABLED | NOT PRESERVE  | 2016-03-30 12:20:23 | 2016-03-30 12:20:23 | NULL          |               |          1 | utf8                 | utf8_general_ci      | latin1_swedish_ci  |
++---------------+--------------+------------+----------------+-----------+------------+---------------------------------+------------+---------------------+----------------+----------------+----------+--------+------+---------+---------------+---------------------+---------------------+---------------+---------------+------------+----------------------+----------------------+--------------------+
+1 row in set (0.00 sec)
+
+
+Important:
+skip grant table in mysqld section and restart and there wont be necessary for the password
+skip networking will prevent all the external users
+
+
+Backup and recovery:
+
+3 types of backup 
+
+1.Hot backup: Data is available to users while backup is happening.Write is available here
+2.Warm backup: Data is available to users while backup is happening.Read is available here
+3.Cold backup:Data is available to users while backup is happening.No read Write is available here
+
+MEB, Xtra backup is the tool which allows hot backup and only innodb
+Warm backup mysqlhotcbackup
+cold backup uses mysqldump
+
+Binary backup (MEB/percona backup)
+Physical/text(mysqldump)
+storage backup
+LVM/snapshot
+copy
+
+
+Important : Executing dump from mysql command line;
+
+mysql -uroot -pppassword;use test;
+source /tmp/dmp.sql;
+
+All the mysql commands will be excecuted
+
+mysqldump -uroot -ppassword --database foo world > /tmp/dmp.sql  //two datbases
+
+mysqldump -uroot -ppassword -all-datbase > /tmp/dmp.sql //all databases
+
+mysqldump -uroot -ppassword --no-data > /tmp/dmp.sql //only structure
+
+mysqldump -uroot -ppassword foo a > /tmp/dmp.sql // one table
+
+mysqldump -uroot -ppassword --tab=/tmp/directoryname/ // a.txt and a.sql is created where a.txt is data and .sql has metadata
+
+mysqldump --help
+
+
+we can chnage the engine through alter command;
+
+alter table my1 engine=myisam;
+
+so it will drop my1, cretate my1 and inserts the data very dangerous in production as it can take lot of time
+
+Copy backup : will not work for innodb engine only but works for the others
+
+Ex: 
+mysql>use db2;
+mysql> create table my1 (id int ) engine=myisam;
+Query OK, 0 rows affected (0.00 sec)
+
+root@naveen-VirtualBox:/var/lib/mysql# cp db2/my1.* f1/
+root@naveen-VirtualBox:/var/lib/mysql# cd f1/
+root@naveen-VirtualBox:/var/lib/mysql/f1# chown mysql:mysql my1.*
+
+mysql> use f1;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> show tables;
++--------------+
+| Tables_in_f1 |
++--------------+
+| my1          |
++--------------+
+1 row in set (0.00 sec)
+
+mysql> select * from my1;
+Empty set (0.00 sec)
+
+Hot backup:
+
+MEb: Mysql entrprise backup, Meb is rpm or the package needed to be installed for this.
+
+Warm backup: mysqlhotcopy backups up only myisma tables .Thats why it is not much used.
+
+
+Performance Tuning:to increase output time and to avoid less waiting time for the query
+
+Major areas to focus are:
+
+1.schema design
+2.SQL tuning
+3.Buffers and cache
+
+Schema design:
+
+Ex: create table a(id bigint,name char(255),salary double(20,5));
+
+In the above bigint takes 8 bytes ,char 255 bytes  and double 8 bytes, so to read a record 8+255+8 bytes are taken even it is a small record .
+When  select query is fired blocks are tranmitted to RAM this is the io cycle for tranferrring the results.
+
+To get the suggestion what is to be used for column data types use the following query
+
+mysql> select * from a procedure analyse()\G
+
+enum () and set are two datatypes can be used for optimising
+
+create table emp1(eno int,ename varchar(10),dept enum('hr','sales','acc'));
+mysql> insert into emp1 values (1,'name','hr');
+
+create table emp1(eno int,ename varchar(10),dept set('hr','sales','acc'));
+mysql> insert into emp1 values (1,'name','hr,acc');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from emp1;
++------+-------+--------+
+| eno  | ename | dept   |
++------+-------+--------+
+|    1 | name  | hr,acc |
++------+-------+--------+
+1 row in set (0.00 sec)
+
+difference between enum and set:
+
+while inserting enum field accepts one option only while with set more then one option can be inserted
+
+SQL tuning:
+
+using indexes:
+
+mysql>show indexes from city\G
+
+indexes are always sorted.
+
+From queries where condition index will be searched ex:select * from a where id=30 so id will be searched from a index
+In a table if id is indexed then id will have a memory location and in that memory location the data of other coulns will be found
+
+Innodb has cluster index:so instead of memory location the whole data will be present in the inde table
+
+memory location index is mostly myisam
+
+create table t1(id int primary key,name char(55),city varchar(255),country char(255))
+
+create index n1 on t1(name)
+
+so here name will first be looked up and corresponding id and then the rest of the data will be served.This is how the indexes work
+
+also we do explain select * from cith where name ='new delhi'\G to see the performance of the query
+
+Do not use '*' in select queries if it is unnecessary
+
+Full text index :
+
+create fulltext index b1 on city(name);
+mysql> explain select * from citylike where match(name) against ('new');
+Is better than
+mysql> explain select * from citylike where name like '%new%';
+
+
+use performance_schema;
+show tables
+event_stage tables: current stage or query executed 
+event_statement tables:the statement is recorded
+event_wait tables:where queries wait for resources are recorded here
+
+Enterprise monitor:Gives graphical representation of the queries wiht spike indications and then user could analyze the query and correct it
+
+
+
+Buffers and cache:
+
+show status:status variables or statistics
+
+flush is just like reload
+flush privileges will reload the privileges
+
+show status like '%com%'; //will tell select,insert or update is used more,if select is used more then query cache should be enabled
+
+show status like '%conn%';
